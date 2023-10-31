@@ -17,6 +17,26 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 
+import Container from '@mui/material/Container';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import TextField from '@mui/material/TextField';
+
+function RedBar() {
+  return (
+    <Box
+      sx={{
+        height: 20,
+        backgroundColor: (theme) =>
+          theme.palette.mode === 'light'
+            ? 'rgba(255, 0, 0, 0.1)'
+            : 'rgb(255 132 132 / 25%)',
+      }}
+    />
+  );
+}
+
+
 
 const [metaMask, hook] = initializeConnector((actions) => new MetaMask({ actions }))
 const { useChainId, useAccounts, useIsActicating, useIsActive, useProvider } = hook
@@ -33,21 +53,60 @@ export default function Page() {
 
   const provider = useProvider()
   const [error, setError] = useState(undefined)
-	
+
+
+const [balance, setBalance] = useState("");
+useEffect (()=> {
+  const fetchBalance = async () =>{
+      const signer = provider.getSigner();
+      const smartContract = new ethers.Contract(contractAddress, abi, signer)
+      const myBalance = await smartContract.balanceOf(accounts[0])
+      console.log(formatEther(myBalance))
+      setBalance(formatEther(myBalance))
+  };
+  if (isActive) {
+    fetchBalance();
+  }
+}, [isActive]);
+
+const [aumValue, setAumValue] = useState(0);
+
+  const handleSetAumValue = event => {
+    setAumValue(event.target.value);
+  };
+  const handleBuy = async () => {
+    try {
+      if (aumValue <= 0) {
+        return;
+      }
+
+      const signer = provider.getSigner();
+      const smartContract = new ethers.Contract(contractAddress, abi, signer);
+      const buyValue = parseUnits(aumValue.toString(), "ether");
+      const tx = await smartContract.buy({
+        value: buyValue.toString(),
+      });
+      console.log("Transaction hash:", tx.hash);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   useEffect(() => {
     void metaMask.connectEagerly().catch(() => {
-      console.debug('Failed to connect eagerly to metamask')
-    })
-  }, [])
+      console.debug("Failed to connect  to metamask");
+    });
+  }, []);
 
   const handleConnect = () => {
-    metaMask.activate(contractChain)
-  }
+    metaMask.activate(contractChain);
+  };
 
   const handleDisconnect = () => {
-    metaMask.resetState()
-  }
-  
+    metaMask.resetState();
+  };
+
+
 return (
     <div>
 
@@ -65,18 +124,16 @@ return (
           </IconButton>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
           <img
-              src = "https://www.gifss.com/economia/bitcoin/images/bitcoin-06.gif" // URL ของรูปภาพโลโก้
+              src = "https://www.gifss.com/economia/bitcoin/images/bitcoin-06.gif"
               alt="Logo"
-              style={{ height: 48, width: "auto" }} // ปรับขนาดตามความต้องการ
-/>
+              style={{ height: 48, width: "auto" }}
+          />
           </Typography>
           
             { isActive ? (
-              <Stack direction="row" spacing={1}>
-              <Chip label={accounts} />
         
               <Button color='inherit' onClick={handleDisconnect}> Disconnect </Button>
-              </Stack>)
+              )
               :(
               
               <Button color='inherit' onClick={handleConnect}> Connect </Button>
@@ -84,12 +141,45 @@ return (
             }
         </Toolbar>
       </AppBar>
-    </Box>
+      <br></br>
+      {isActive && (
+        <Container maxWidth="sm">
+          <Card sx={{ minWidth: 275, backgroundColor: '#01150', height: '400px', boxShadow: '5px 5px 10px #888888' }}>
+            <CardContent>
+              <Stack spacing={2}>
+              <Typography variant="h5" component="div">
+                MetaMask Wallet Balance
+              </Typography>
+              
+              <TextField label="accounts" value={accounts} />
+            
+              <TextField label="balance" value={balance} />
+              <Typography variant="h5" component="div">
+                BUY Aum Token
+              </Typography>
 
-      <p>chainId: { chainId }</p>
-      <p>isActive: { isActive.toString() }</p>
+              <TextField
+                required
+                id="outlined-required"
+                label="Enter amount of Ether you want to buy Aum Token"
+                defaultValue=""
+                type="number"
+                onChange={handleSetAumValue}
+              />
+        
+              <Button variant="contained" onClick={handleBuy}>
+                Buy Aum Token
+              </Button>
+            </Stack>
+            </CardContent>     
+          </Card>
+        </Container>
+      )}
+
+    </Box>
       
     </div>
   )
 }
+
 
